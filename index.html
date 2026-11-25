@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PA ZU - MLBB MELODY PITCH MATCH</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; }
+    body { background: #0b0914; color: #ffffff; height: 100vh; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+    
+    .top-header { background: #161224; height: 50px; border-bottom: 3px solid #ff007f; display: flex; justify-content: space-between; align-items: center; padding: 0 12px; box-shadow: 0 0 15px rgba(255, 0, 127, 0.4); flex-shrink: 0; z-index: 10; }
+    .student-badge { font-size: 13px; color: #00f0ff; font-weight: bold; }
+    .status-group { display: flex; align-items: center; gap: 8px; }
+    .rank-badge { background: linear-gradient(135deg, #7928ca, #ff007f); padding: 4px 10px; border-radius: 10px; font-size: 11px; font-weight: 900; color: #ffe600; border: 1px solid #ffe600; }
+    .score-badge { font-size: 15px; font-weight: 900; color: #ffe600; }
+
+    .start-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #282142 0%, #0b0914 100%); z-index: 9998; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 15px; text-align: center; overflow-y: auto; }
+    .start-title { color: #00f0ff; font-size: 26px; font-weight: 900; margin-bottom: 4px; text-transform: uppercase; text-shadow: 0 0 15px #00f0ff; }
+    .start-subtitle { color: #ff007f; font-size: 13px; font-weight: 800; margin-bottom: 14px; text-transform: uppercase; }
+    .student-form { background: #161224; border: 3px solid #ff007f; padding: 16px; border-radius: 18px; width: 100%; max-width: 350px; margin-bottom: 14px; text-align: left; }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 13px; color: #ffe600; font-weight: bold; margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 11px; font-size: 15px; border-radius: 10px; border: 2px solid #7928ca; background: #0b0914; color: #fff; outline: none; user-select: text; }
+    .start-btn { background: linear-gradient(135deg, #00f0ff, #7928ca); color: #fff; font-size: 18px; font-weight: 900; padding: 14px 30px; border: 2px solid #fff; border-radius: 30px; cursor: pointer; width: 100%; max-width: 350px; text-transform: uppercase; }
+
+    .arena { flex: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding: 10px 15px 90px 15px; gap: 10px; overflow-y: auto; }
+    .info-bar { width: 100%; max-width: 350px; display: flex; justify-content: space-between; font-size: 12px; font-weight: bold; }
+    .target-card { background: #161224; border: 2px solid #00f0ff; padding: 12px; border-radius: 16px; text-align: center; width: 100%; max-width: 350px; }
+    .target-title { font-size: 11px; color: #ffe600; font-weight: bold; margin-bottom: 8px; }
+
+    .melody-sequence { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-bottom: 8px; }
+    .note-chip { background: #0b0914; border: 2px solid #332a54; border-radius: 10px; padding: 6px 8px; min-width: 44px; text-align: center; }
+    .note-chip .n-name { font-size: 15px; font-weight: 900; color: #cbd5e1; display: block; }
+    .note-chip .n-beat { font-size: 10px; color: #8a81a8; font-weight: bold; }
+    .note-chip.active { border-color: #00f0ff; background: #1e1b4b; transform: scale(1.08); box-shadow: 0 0 10px rgba(0, 240, 255, 0.6); }
+    .note-chip.active .n-name { color: #ffffff; }
+    .note-chip.active .n-beat { color: #ffe600; }
+    .note-chip.done { border-color: #10b981; background: rgba(16, 185, 129, 0.25); }
+    .note-chip.done .n-name { color: #10b981; }
+    .note-chip.done .n-beat { color: #a7f3d0; }
+
+    .target-freq { font-size: 12px; color: #00f0ff; font-weight: 600; }
+    .play-sound-btn { margin-top: 8px; background: #282142; border: 2px solid #ff007f; color: #fff; padding: 8px 16px; border-radius: 18px; font-size: 13px; font-weight: bold; cursor: pointer; }
+
+    .pitch-container { width: 100%; max-width: 350px; background: #161224; border: 2px solid #7928ca; border-radius: 14px; padding: 12px; text-align: center; }
+    .meter-bar { position: relative; width: 100%; height: 24px; background: #0b0914; border-radius: 12px; overflow: hidden; border: 1px solid #332a54; margin: 8px 0; }
+    .center-target-zone { position: absolute; left: 30%; width: 40%; height: 100%; background: rgba(16, 185, 129, 0.35); border-left: 2px dashed #10b981; border-right: 2px dashed #10b981; }
+    .pitch-pointer { position: absolute; left: 50%; top: 0; width: 8px; height: 100%; background: #ff007f; border-radius: 4px; transform: translateX(-50%); transition: left 0.08s ease-out; }
+    .pitch-status { font-size: 14px; font-weight: 900; color: #ffe600; height: 20px; }
+    .detected-freq { font-size: 12px; color: #00f0ff; margin-top: 2px; }
+
+    .progress-box { width: 100%; max-width: 350px; background: #161224; padding: 10px 14px; border-radius: 12px; border: 1px solid #7928ca; text-align: center; }
+    .progress-title { font-size: 12px; color: #ffe600; margin-bottom: 6px; font-weight: 900; }
+    .progress-bg { width: 100%; height: 12px; background: #0b0914; border-radius: 6px; overflow: hidden; }
+    .progress-fill { width: 0%; height: 100%; background: linear-gradient(90deg, #10b981, #00f0ff); }
+
+    .controls { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px 15px 15px 15px; background: #161224; border-top: 2px solid #7928ca; display: flex; justify-content: center; gap: 8px; z-index: 100; }
+    .mic-btn { flex: 2; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 2px solid #fff; font-size: 15px; font-weight: 900; padding: 12px 14px; border-radius: 25px; cursor: pointer; max-width: 220px; }
+    .mic-btn.recording { background: linear-gradient(135deg, #ef4444, #dc2626) !important; }
+    .skip-btn { flex: 1; background: #282142; color: #ffe600; border: 2px solid #ffe600; font-size: 13px; font-weight: 900; padding: 12px 10px; border-radius: 25px; cursor: pointer; max-width: 110px; }
+
+    .result-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(11, 9, 20, 0.96); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; padding: 20px; text-align: center; }
+    .result-card { background: #161224; border: 3px solid #00f0ff; border-radius: 20px; padding: 22px; width: 100%; max-width: 350px; }
+    .wa-btn { display: block; width: 100%; background: #25D366; color: #fff; font-weight: 900; padding: 14px; border-radius: 25px; text-decoration: none; margin-top: 14px; font-size: 15px; border: 2px solid #fff; }
+  </style>
+</head>
+<body>
+
+  <div class="start-screen" id="start-screen">
+    <div class="start-title">PA ZU</div>
+    <div class="start-subtitle">🎼 MLBB MELODY & BEAT MATCH 🎼</div>
+    <div class="student-form">
+      <div class="form-group">
+        <label>Nama Lengkap Murid:</label>
+        <input type="text" id="student-name" placeholder="Ketik nama lengkap..." autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Kelas:</label>
+        <input type="text" id="student-class" placeholder="Contoh: 7.1" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label>Email Murid (Untuk Kirim Hasil):</label>
+        <input type="email" id="student-email" placeholder="contoh@gmail.com" autocomplete="off">
+      </div>
+      <div class="form-group" style="margin-bottom:0;">
+        <label>Nomor WhatsApp (Awali 08):</label>
+        <input type="tel" id="student-wa" placeholder="Contoh: 081234567890" autocomplete="off">
+      </div>
+    </div>
+
+    <div style="background:#161224; border:2px solid #7928ca; padding:10px; border-radius:12px; font-size:12px; margin-bottom:14px; width:100%; max-width:350px; text-align:left;">
+      <strong style="color:#ffe600;">CARA BERMAIN (10 MELODI):</strong>
+      <ul style="margin-left:16px; margin-top:4px; color:#e2e8f0; line-height:1.4;">
+        <li>Tekan 🔊 <strong>DENGARKAN MELODI</strong> untuk mendengar nada & ketukannya.</li>
+        <li>Tekan <strong>MULAI NYANYI</strong> lalu tirukan nada secara berurutan dari kiri ke kanan.</li>
+        <li>Tahan tiap nada sesuai jumlah ketukannya (1 ketuk = 0.8 detik)!</li>
+      </ul>
+    </div>
+
+    <button class="start-btn" onclick="validateAndStart()">MULAI MAIN 🚀</button>
+  </div>
+
+  <div class="top-header">
+    <div class="student-badge" id="display-student">Siswa: -</div>
+    <div class="status-group">
+      <div class="rank-badge" id="question-badge">SOAL: 1/10</div>
+      <div class="score-badge" id="score-badge">SKOR: 0</div>
+    </div>
+  </div>
+
+  <div class="arena">
+    <div class="info-bar">
+      <span style="color:#10b981;" id="acc-display">🎯 Akurasi: 0%</span>
+      <span style="color:#ff007f;" id="timer-display">⏱️ Waktu: 20.0s</span>
+    </div>
+    <div class="target-card">
+      <div class="target-title" id="melody-desc">SOAL 1: NADA STABIL (4 KETUK)</div>
+      <div class="melody-sequence" id="melody-sequence"></div>
+      <div class="target-freq" id="target-freq">Target Aktif: C4 (261.6 Hz) - 4 ketuk</div>
+      <button class="play-sound-btn" onclick="playMelody()">🔊 DENGARKAN MELODI BIOLA</button>
+    </div>
+    <div class="pitch-container">
+      <div class="pitch-status" id="pitch-status">TEKAN 'MULAI NYANYI'</div>
+      <div class="meter-bar">
+        <div class="center-target-zone"></div>
+        <div class="pitch-pointer" id="pitch-pointer"></div>
+      </div>
+      <div class="detected-freq" id="detected-freq">Suara Murid: - Hz</div>
+    </div>
+    <div class="progress-box">
+      <div class="progress-title" id="hold-instruction">🎯 NYANYIKAN & TAHAN: C4 (4 ketuk)</div>
+      <div class="progress-bg"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎤 MULAI NYANYI</button>
+    <button class="skip-btn" id="skip-btn" onclick="skipQuestion()">⏭️ LEWATI</button>
+  </div>
+
+  <div class="result-modal" id="result-modal">
+    <div class="result-card">
+      <div style="color:#00f0ff; font-size:20px; font-weight:900; margin-bottom:8px;">🏁 PERMAINAN SELESAI!</div>
+      <div id="result-summary" style="color:#e2e8f0; font-size:14px; line-height:1.6; text-align:left; background:#0b0914; padding:12px; border-radius:12px; border:1px solid #7928ca;"></div>
+      <div id="email-notif" style="font-size:12px; color:#10b981; margin-top:10px; font-weight:bold;"></div>
+      <a id="wa-share-link" class="wa-btn" href="#" target="_blank">📲 KIRIM HASIL KE WHATSAPP</a>
+    </div>
+  </div>
+
+  <script>
+    var SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLlFjDUN03qJ4oRzW4RXMetplgcasO4AW-6HZv6OduRg8IRqiDYihlj37hYBK-HZJm/exec";
+    var FREQ = { G3: 196.00, A3: 220.00, B3: 246.94, C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.00 };
+    var QUESTIONS = [
+      { t: "SOAL 1: NADA STABIL (4 KETUK)", n: [["C4",4]] },
+      { t: "SOAL 2: TANGGA NADA NAIK (1 KETUK)", n: [["C4",1],["D4",1],["E4",1],["F4",1]] },
+      { t: "SOAL 3: MELODI SETENGAH KETUK", n: [["B3",0.5],["A3",0.5],["G3",1],["C4",2]] },
+      { t: "SOAL 4: GERAK CEPAT & LOMPAT", n: [["G3",0.5],["A3",0.5],["B3",0.5],["C4",0.5],["E4",1],["F4",1]] },
+      { t: "SOAL 5: TANGGA NADA TURUN", n: [["G4",1],["F4",1],["E4",1],["D4",1],["C4",2]] },
+      { t: "SOAL 6: ARPEGGIO DO - MI - SOL", n: [["C4",1],["E4",1],["G4",2]] },
+      { t: "SOAL 7: MOTIF LAGU ANAK", n: [["E4",0.5],["D4",0.5],["C4",0.5],["D4",0.5],["E4",1],["E4",1]] },
+      { t: "SOAL 8: LOMPATAN SOL KE DO", n: [["G3",1],["C4",1],["B3",0.5],["A3",0.5],["G3",2]] },
+      { t: "SOAL 9: MELODI CERIA", n: [["C4",0.5],["D4",0.5],["E4",1],["G4",1],["E4",1],["C4",2]] },
+      { t: "SOAL 10: TANTANGAN AKHIR", n: [["G4",0.5],["E4",0.5],["F4",0.5],["D4",0.5],["E4",1],["D4",1],["C4",2]] }
+    ];
+
+    var SEC_PER_BEAT = 0.8;
+    var TIME_LIMIT = 20.0;
+    var qIdx = 0, noteStep = 0, score = 0, accList = [], centsList = [], finished = false;
+    var sName = "", sClass = "", sEmail = "", sWA = "";
+    var audioCtx = null, micStream = null, analyser = null, listening = false;
+    var holdProg = 0, lastT = 0, timeLeft = TIME_LIMIT, timerId = null, previewLock = false;
+
+    function beatTxt(b) {
+      return b === 0.5 ? "1/2 ketuk" : b + " ketuk";
+    }
+
+    function getRank(s) {
+      if (s < 40) return "WARRIOR";
+      if (s < 55) return "ELITE";
+      if (s < 70) return "MASTER";
+      if (s < 80) return "GRANDMASTER";
+      if (s < 90) return "EPIC";
+      if (s < 96) return "LEGEND";
+      return "MYTHIC";
+    }
+
+    function avgAcc() {
+      if (accList.length === 0) return 0;
+      var total = 0;
+      for (var i = 0; i < accList.length; i++) {
+        total += accList[i];
+      }
+      return Math.round(total / accList.length);
+    }
+
+    function updateHUD() {
+      document.getElementById("question-badge").innerText = "SOAL: " + Math.min(qIdx + 1, 10) + "/10";
+      document.getElementById("score-badge").innerText = "SKOR: " + score;
+      document.getElementById("acc-display").innerText = "🎯 Akurasi: " + avgAcc() + "%";
+    }
+
+    function renderChips() {
+      var q = QUESTIONS[qIdx];
+      var box = document.getElementById("melody-sequence");
+      box.innerHTML = "";
+      for (var i = 0; i < q.n.length; i++) {
+        var item = q.n[i];
+        var div = document.createElement("div");
+        div.className = "note-chip";
+        if (i < noteStep) div.className += " done";
+        else if (i === noteStep) div.className += " active";
+        div.id = "chip-" + i;
+        div.innerHTML = '<span class="n-name">' + item[0] + '</span><span class="n-beat">' + beatTxt(item[1]) + '</span>';
+        box.appendChild(div);
+      }
+      var cur = q.n[noteStep];
+      document.getElementById("target-freq").innerText = "Target Aktif: " + cur[0] + " (" + FREQ[cur[0]].toFixed(1) + " Hz) - " + beatTxt(cur[1]);
+      document.getElementById("hold-instruction").innerText = "🎯 NYANYIKAN & TAHAN: " + cur[0] + " (" + beatTxt(cur[1]) + ")";
+    }
+
+    function startTimer() {
+      clearInterval(timerId);
+      timeLeft = TIME_LIMIT;
+      document.getElementById("timer-display").innerText = "⏱️ Waktu: " + timeLeft.toFixed(1) + "s";
+      timerId = setInterval(function() {
+        if (finished) return;
+        timeLeft -= 0.1;
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          document.getElementById("timer-display").innerText = "⏱️ Waktu Habis!";
+          var ratio = noteStep / QUESTIONS[qIdx].n.length;
+          finishQuestion(Math.round(ratio * 8), Math.round(ratio * 80));
+        } else {
+          document.getElementById("timer-display").innerText = "⏱️ Waktu: " + timeLeft.toFixed(1) + "s";
+        }
+      }, 100);
+    }
+
+    function skipQuestion() {
+      if (!finished) finishQuestion(0, 0);
+    }
+
+    function finishQuestion(pts, acc) {
+      clearInterval(timerId);
+      score += pts;
+      accList.push(acc);
+      qIdx++;
+      updateHUD();
+      sendSheet(false);
+      if (qIdx >= 10) endGame();
+      else loadQuestion(qIdx);
+    }
+
+    function loadQuestion(idx) {
+      noteStep = 0;
+      holdProg = 0;
+      centsList = [];
+      document.getElementById("melody-desc").innerText = QUESTIONS[idx].t;
+      document.getElementById("progress-fill").style.width = "0%";
+      updateHUD();
+      renderChips();
+      startTimer();
+      playMelody();
+    }
+
+    function sendSheet(sendMail) {
+      var dataObj = {
+        nama: sName,
+        kelas: sClass,
+        email: sEmail,
+        wa: sWA,
+        skor: score,
+        akurasi: avgAcc(),
+        rank: getRank(score),
+        kirimEmail: sendMail
+      };
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        body: JSON.stringify(dataObj)
+      }).catch(function() {});
+    }
+
+    function endGame() {
+      finished = true;
+      clearInterval(timerId);
+      if (listening) stopMic();
+      var acc = avgAcc();
+      var rnk = getRank(score);
+      sendSheet(true);
+
+      document.getElementById("result-summary").innerHTML =
+        "<strong>Nama:</strong> " + sName + " (" + sClass + ")<br>" +
+        "<strong>Nilai Akhir:</strong> " + score + " / 100<br>" +
+        "<strong>Akurasi Rata-rata:</strong> " + acc + "%<br>" +
+        "<strong>Tier Rank:</strong> " + rnk + "<br>" +
+        "<strong>Status:</strong> Tersimpan di Spreadsheet Guru";
+
+      document.getElementById("email-notif").innerText = "✅ Hasil dikirim ke Email: " + sEmail;
+      var msg = "*HASIL PERMAINAN MELODI VOKAL (PA ZU)*%0A%0ANama: *" + sName + "*%0AKelas: *" + sClass + "*%0ANilai: *" + score + "/100*%0AAkurasi: *" + acc + "%*%0ARank: *" + rnk + "*";
+      var waNum = sWA.replace(/[^0-9]/g, "");
+      if (waNum.indexOf("0") === 0) waNum = "62" + waNum.substring(1);
+      document.getElementById("wa-share-link").href = "https://wa.me/" + waNum + "?text=" + msg;
+      document.getElementById("result-modal").style.display = "flex";
+    }
+
+    function playTone(f, dur) {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        var t = audioCtx.currentTime;
+        var osc = audioCtx.createOscillator();
+        var gain = audioCtx.createGain();
+        osc.type = "sawtooth";
+        osc.frequency.setValueAtTime(f, t);
+        gain.gain.setValueAtTime(0.01, t);
+        gain.gain.linearRampToValueAtTime(0.22, t + 0.04);
+        gain.gain.linearRampToValueAtTime(0.001, t + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(t);
+        osc.stop(t + dur);
+      } catch (e) {}
+    }
+
+    function playMelody() {
+      if (previewLock) return;
+      previewLock = true;
+      var q = QUESTIONS[qIdx];
+      var step = 0;
+      function nextNote() {
+        if (finished || step >= q.n.length) {
+          previewLock = false;
+          if (!finished) renderChips();
+          return;
+        }
+        var chips = document.querySelectorAll(".note-chip");
+        for (var i = 0; i < chips.length; i++) chips[i].style.boxShadow = "";
+        var chip = document.getElementById("chip-" + step);
+        if (chip) chip.style.boxShadow = "0 0 14px #ff007f";
+        var note = q.n[step][0];
+        var beats = q.n[step][1];
+        var dur = beats * SEC_PER_BEAT;
+        playTone(FREQ[note], Math.max(0.2, dur - 0.04));
+        step++;
+        setTimeout(nextNote, dur * 1000);
+      }
+      nextNote();
+    }
+
+    async function toggleMic() {
+      if (finished) return;
+      if (!listening) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          alert("Browser memblokir mikrofon. Pastikan dibuka lewat link GitHub Pages (HTTPS)!");
+          return;
+        }
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") await audioCtx.resume();
+          micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          var src = audioCtx.createMediaStreamSource(micStream);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 2048;
+          src.connect(analyser);
+          listening = true;
+          var btn = document.getElementById("mic-btn");
+          btn.classList.add("recording");
+          btn.innerText = "🛑 STOP NYANYI";
+          lastT = performance.now();
+          loopPitch();
+        } catch (e) {
+          alert("Izin mikrofon ditolak! Klik ikon gembok di samping alamat web Chrome lalu izinkan Mikrofon.");
+        }
+      } else {
+        stopMic();
+      }
+    }
+
+    function stopMic() {
+      listening = false;
+      if (micStream) micStream.getTracks().forEach(function(t) { t.stop(); });
+      var btn = document.getElementById("mic-btn");
+      btn.classList.remove("recording");
+      btn.innerText = "🎤 MULAI NYANYI";
+      document.getElementById("pitch-status").innerText = "DIHENTIKAN";
+      document.getElementById("detected-freq").innerText = "Suara Murid: - Hz";
+      document.getElementById("pitch-pointer").style.left = "50%";
+    }
+
+    function autoCorrelate(buf, sr) {
+      var size = buf.length, rms = 0;
+      for (var i = 0; i < size; i++) rms += buf[i] * buf[i];
+      if (Math.sqrt(rms / size) < 0.012) return -1;
+      var r1 = 0, r2 = size - 1;
+      for (var i = 0; i < size / 2; i++) if (Math.abs(buf[i]) < 0.2) { r1 = i; break; }
+      for (var i = 1; i < size / 2; i++) if (Math.abs(buf[size - i]) < 0.2) { r2 = size - i; break; }
+      buf = buf.slice(r1, r2);
+      size = buf.length;
+      var c = new Array(size).fill(0);
+      for (var i = 0; i < size; i++) {
+        for (var j = 0; j < size - i; j++) c[i] += buf[j] * buf[j + i];
+      }
+      var d = 0;
+      while (c[d] > c[d + 1]) d++;
+      var maxv = -1, maxp = -1;
+      for (var i = d; i < size; i++) {
+        if (c[i] > maxv) { maxv = c[i]; maxp = i; }
+      }
+      return sr / maxp;
+    }
+
+    function loopPitch() {
+      if (!listening || finished) return;
+      var now = performance.now();
+      var dt = (now - lastT) / 1000;
+      lastT = now;
+
+      var buf = new Float32Array(2048);
+      analyser.getFloatTimeDomainData(buf);
+      var pitch = autoCorrelate(buf, audioCtx.sampleRate);
+
+      var st = document.getElementById("pitch-status");
+      var fq = document.getElementById("detected-freq");
+      var ptr = document.getElementById("pitch-pointer");
+      var q = QUESTIONS[qIdx];
+      var note = q.n[noteStep][0];
+      var beats = q.n[noteStep][1];
+      var targetF = FREQ[note];
+      var reqHold = beats * SEC_PER_BEAT;
+
+      if (pitch === -1) {
+        st.innerText = "NYANYIKAN: " + note + " 🎤";
+        st.style.color = "#ffe600";
+        fq.innerText = "Suara Murid: Tidak Terdeteksi";
+        ptr.style.left = "50%";
+      } else {
+        fq.innerText = "Suara Murid: " + pitch.toFixed(1) + " Hz";
+        var cents = 1200 * Math.log2(pitch / targetF);
+        var absC = Math.abs(cents);
+        ptr.style.left = Math.max(5, Math.min(95, 50 + cents / 2)) + "%";
+
+        if (absC <= 45) {
+          st.innerText = "PAS (" + note + ")! TAHAN... 🎯";
+          st.style.color = "#10b981";
+          centsList.push(absC);
+          holdProg += (dt / reqHold) * 100;
+          if (holdProg >= 100) {
+            noteStep++;
+            holdProg = 0;
+            if (noteStep >= q.n.length) {
+              var sumC = 0;
+              for (var k = 0; k < centsList.length; k++) sumC += centsList[k];
+              var avgC = centsList.length > 0 ? sumC / centsList.length : 0;
+              var qAcc = Math.round(100 - (avgC / 45) * 20);
+              finishQuestion(Math.max(8, Math.round(qAcc / 10)), qAcc);
+            } else {
+              renderChips();
+            }
+          }
+        } else if (cents < -45) {
+          st.innerText = "TERLALU RENDAH DARI " + note + " ⬆️";
+          st.style.color = "#ef4444";
+          holdProg = Math.max(0, holdProg - dt * 30);
+        } else {
+          st.innerText = "TERLALU TINGGI DARI " + note + " ⬇️";
+          st.style.color = "#ef4444";
+          holdProg = Math.max(0, holdProg - dt * 30);
+        }
+        document.getElementById("progress-fill").style.width = Math.min(100, holdProg) + "%";
+      }
+      requestAnimationFrame(loopPitch);
+    }
+
+    function validateAndStart() {
+      sName = document.getElementById("student-name").value.trim();
+      sClass = document.getElementById("student-class").value.trim();
+      sEmail = document.getElementById("student-email").value.trim();
+      sWA = document.getElementById("student-wa").value.trim();
+
+      if (!sName || !sClass || !sEmail || !sWA) {
+        alert("Harap isi semua data terlebih dahulu!");
+        return;
+      }
+      if (sWA.indexOf("08") !== 0) {
+        alert("Nomor WhatsApp harus diawali 08!");
+        return;
+      }
+
+      document.getElementById("display-student").innerText = "Siswa: " + sName + " (" + sClass + ")";
+      document.getElementById("start-screen").style.display = "none";
+      loadQuestion(0);
+      sendSheet(false);
+    }
+  </script>
+</body>
+</html>
